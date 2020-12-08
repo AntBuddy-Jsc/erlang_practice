@@ -2,21 +2,21 @@
 -compile(export_all).
 -record(person, {name, age, phone, email}).
 
-create(Name) -> 									%create table Name
-	ets:new(Name, [bag, named_table, {keypos,1}]). 	%default keypos=1
+create(Name) -> %create table Name
+	ets:new(Name, [bag, named_table, {keypos,1}]). %default keypos=1
 
-insert(Name, P=#person{}) -> 						%insert new object for table Name
+insert(Name, P=#person{}) -> %insert new object for table Name
 	ets:insert(Name, {P#person.name, P#person.age, P#person.phone, P#person.email}).  
 
-search(Name, P=#person{}) -> 						%search name person P in Name, mean key 
+search(Name, P=#person{}) -> %search name person P in Name, mean key 
 	io:format("Search person ~p~n",[P#person.name]),
 	ets:lookup(Name, P#person.name);
 
-search(Name, Arg) -> 								%search key=_arg
+search(Name, Arg) -> %search key=_arg
 	io:format("Search _arg~n"),
 	ets:lookup(Name, Arg).
 
-person(Name, Age, Phone, Email) -> 					%return a record
+person(Name, Age, Phone, Email) -> %return a record
 	if 
 		is_number(Age) ->
 			Person = #person{name=Name, age=Age, phone=Phone, email=Email},
@@ -25,9 +25,9 @@ person(Name, Age, Phone, Email) -> 					%return a record
 			io:format("Wrong data type!")
 	end.
 
-is_person(Arg) -> is_record(Arg, person). 			%check if Arg a is a person record
+is_person(Arg) -> is_record(Arg, person). %check if Arg a is a person record
 
-print(Table) -> 									%print list data in table
+print(Table) -> %print list data in table
 	io:format("Table is: ~p~n",[ets:tab2list(Table)]).
 
 %=================================================================================
