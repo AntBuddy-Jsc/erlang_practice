@@ -19,9 +19,9 @@
          code_change/4]).
 
 -define(SERVER, ?MODULE).
--define(BARKING_TIME, 3000).
+-define(BARKING_TIME, 5000).
 -define(WAGGING_TIME, 13000).
--define(FINDING_TIME, 2500).
+-define(FINDING_TIME, 7500).
 -define(SITTING_TIME, 30000).
 
 %%%===================================================================
@@ -45,7 +45,7 @@ smell() ->
 	gen_fsm:send_event(?SERVER, smell).
 
 print(Table) ->
-	io:format("Table is: ~p~n",[ets:match_object(Table,{'_','_'})]).
+	io:format("Table is: ~p~n",[ets:tab2list(Table)]).
 
 delete(Table) -> %delete table
 	io:format("You're about to delete table ~p~n",[Table]),
@@ -56,6 +56,7 @@ delete(Table) -> %delete table
 
 init([Table]) ->
 	ets:new(Table, [duplicate_bag, named_table]),
+%	ets:insert(Table,{0,0,0}),
   	{ok, barking, Table, 1000}.
 
 barking(Event, Table) -> %handle state barking
