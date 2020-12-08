@@ -7,7 +7,7 @@
 -export([squirrel/0, pet/0, smell/0, delete/1]).
 
 %% gen_fsm callbacks
--export([init/1, %add/3,
+-export([init/1, add/3, print/1,
          barking/2,
          wagging_tail/2,
          sitting/2,
@@ -22,6 +22,7 @@
 -define(BARKING_TIME, 3000).
 -define(WAGGING_TIME, 13000).
 -define(FINDING_TIME, 2500).
+-define(SITTING_TIME, 30000).
 
 %%%===================================================================
 %%% API
@@ -29,7 +30,6 @@
 
 start_link(Table) -> %spawn and link, create table
 	io:format("before create new table~n"),
-	ets:new(Table, [duplicate_bag, named_table]),
  	gen_fsm:start_link({local, ?SERVER}, ?MODULE, [Table], []).
 
 stop() ->
@@ -44,6 +44,9 @@ pet() ->
 smell() ->
 	gen_fsm:send_event(?SERVER, smell).
 
+print(Table) ->
+	io:format("Table is: ~p~n",[ets:match_object(Table,{'_','_'})]).
+
 delete(Table) -> %delete table
 	io:format("You're about to delete table ~p~n",[Table]),
 	ets:delete(Table).
@@ -52,100 +55,85 @@ delete(Table) -> %delete table
 %%%===================================================================
 
 init([Table]) ->
-  	{ok, barking, [Table], 0}.
+	ets:new(Table, [duplicate_bag, named_table]),
+  	{ok, barking, Table, 1000}.
 
-barking(Event, [Table]) -> %handle state barking
-%	io:format("State: ~p~n", [State]),
+barking(Event, Table) -> %handle state barking
+	print(Table),
 	case Event of
 		pet ->
-			io:format("Pet na~n"),
-			print(Table),
 			wag(),
 			io:fwrite("Next state: wagging_tail~n...Ready...~n~n"),
 			{next_state, wagging_tail, add(Table,'wag',Event), ?WAGGING_TIME};
 		timeout ->
-			io:format("Timeout na~n"),
-			print(Table),
 			bark(),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
 			{next_state, barking, add(Table,'bark',Event), ?BARKING_TIME};
 		smell ->
-			io:format("Smell hi~n"),
-			print(Table),
 			find(),
 			io:fwrite("Next state: smelling~n...Ready...~n~n"),
 			{next_state, smelling, add(Table,'find',Event), ?FINDING_TIME};
     	_ ->
-			io:format("___ ne~n"),
 			io:format("Dog is confused~n...Ready...~n"),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
-			%ets:insert(Table,{'confused',Event}),
-         	{next_state, barking, Table, 0}
+         	{next_state, barking, add(Table,'confused',Event), 0}
         end.
 
 wagging_tail(Event, Table) -> %handle state wagging_tail
+	print(Table),
 	case Event of
        	pet ->
          	sit(),
-			ets:insert(Table, {'sit',Event}),
  			io:fwrite("Next state: sitting~n...Ready...~n~n"),
-   			{next_state, sitting, Table};
+   			{next_state, sitting, add(Table,'sit',Event), ?SITTING_TIME};
 		timeout ->
-			ets:insert(Table,{'timeout',Event}),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
-         	{next_state, barking, Table, 0};
+         	{next_state, barking, add(Table,'timeout',Event), 0};
 		squirrel ->
-			ets:insert(Table,{'squirrel',Event}),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
-      		{next_state, barking, Table, 0};
+      		{next_state, barking, add(Table,'squirrel',Event), 0};
 		smell ->
 			find(),
-			ets:insert(Table,{'find',Event}),
 			io:fwrite("Next state: smelling~n...Ready...~n~n"),
-			{next_state, smelling, Table, ?FINDING_TIME};
+			{next_state, smelling, add(Table,'find',Event), ?FINDING_TIME};
      	_ ->
            	io:format("Dog is confused~n...Ready...~n"),
            	wag(),	
-			ets:insert(Table,{'wag',Event}),
 			io:fwrite("Next state: wagging_tail~n...Ready...~n~n"),
-   			{next_state, wagging_tail, Table, ?WAGGING_TIME}
+   			{next_state, wagging_tail, add(Table,'confused',Event), ?WAGGING_TIME}
      end.
 
 sitting(Event,Table) -> %handle state sitting
+	print(Table),
   	case Event of
 		squirrel ->
-			ets:insert(Table,{'squirrel',Event}),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
-      		{next_state, barking, Table, 0};
+      		{next_state, barking, add(Table,'squirrel',Event), 0};
 		smell ->
 			find(),
-			ets:insert(Table,{'find',Event}),
 			io:fwrite("Next state: smelling~n...Ready...~n~n"),
-			{next_state, smelling, Table, ?FINDING_TIME};
+			{next_state, smelling, add(Table,'find',Event), ?FINDING_TIME};
   		_ ->
 			io:format("Dog is confused~n...Ready...~n"),
 			sit(),
-			ets:insert(Table,{'sit',Event}),
 			io:fwrite("Next state: sitting~n...Ready...~n~n"),
-  			{next_state, sitting, Table}
+  			{next_state, sitting, add(Table,'confused',Event)}
 	end.
 
 smelling(Event, Table) -> %handle state amelling
+	print(Table),
 	case Event of
 		pet ->
 			wag(),
-			ets:insert(Table,{'wag',Event}),
  			io:fwrite("Next state: smelling~n...Ready...~n~n"),
-     		{next_state, smelling, Table, ?FINDING_TIME};
+     		{next_state, smelling, add(Table,'wag',Event), ?FINDING_TIME};
 		squirrel ->
-			ets:insert(Table,{'squirrel',Event}),
 			io:fwrite("Next state: barking~n...Ready...~n~n"),
-			{next_state, barking, Table, 0};
+			{next_state, barking, add(Table,'squirrel',Event), 0};
 		_ ->
 			find(),
-			ets:insert(Table,{'find',Event}),
 			io:fwrite("Next state: smelling~n...Ready...~n~n"),
-			{next_state, smelling, Table, ?FINDING_TIME}
+			{next_state, smelling, add(Table,'find',Event), ?FINDING_TIME}
 	end.
 		
 handle_event(stop, _StateName, Table) -> %handle func dog_fsm_ets:stop()
@@ -185,9 +173,5 @@ find() ->
 add(Table, Arg1, Arg2) ->
 	ets:insert(Table,{Arg1, Arg2}),
 	Table.
-
-print(Table) ->
-	ets:match_object(Table,{'_','_'}).
-
 
 
